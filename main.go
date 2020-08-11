@@ -14,26 +14,26 @@ const (
 )
 
 type Options struct {
-	UserAgent        string
-	Authorization    string
-	CacheOptimalNode bool
+	UserAgent        string `json:"userAgent"`
+	Authorization    string `json:"authorization"`
+	CacheOptimalNode bool   `json:"cacheOptimalNode"`
 }
 
 type LoadBalancer struct {
-	Nodes      []*Node
-	opt        Options
-	CachedNode *Node
+	Nodes      []*Node `json:"nodes"`
+	opt        Options `json:"opt"`
+	CachedNode *Node   `json:"cachedNode"`
 }
 
 type F struct {
-	Value float32
-	Mod   uint8
+	Value float32 `json:"value"`
+	Mod   uint8   `json:"mod"`
 }
 
 type Node struct {
-	Fs         map[string]*F
-	URI        string
-	LastStatus uint16
+	Fs         map[string]*F `json:"fs"`
+	URI        string        `json:"uri"`
+	LastStatus uint16        `json:"lastStatus"`
 }
 
 func NewFrom(nodes []*Node, opt Options) *LoadBalancer {
