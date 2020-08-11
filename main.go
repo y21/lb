@@ -77,6 +77,10 @@ func (lb *LoadBalancer) PingNode(n *Node) error {
 		return err
 	}
 
+	if lb.opt.Authorization != "" {
+		req.Header.Set("Authorization", lb.opt.Authorization)
+	}
+
 	resp, err := cl.Do(req)
 	if err != nil {
 		n.LastStatus = StatusUnavailable
