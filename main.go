@@ -23,6 +23,7 @@ type LoadBalancer struct {
 	Nodes      []*Node `json:"nodes"`
 	opt        Options `json:"opt"`
 	CachedNode *Node   `json:"cachedNode"`
+	ErrorListener func(*Node)
 }
 
 type F struct {
@@ -36,12 +37,12 @@ type Node struct {
 	LastStatus uint16        `json:"lastStatus"`
 }
 
-func NewFrom(nodes []*Node, opt Options) *LoadBalancer {
-	return &LoadBalancer{nodes, opt, nil}
+func NewFrom(nodes []*Node, opt Options, handler func(*Node)) *LoadBalancer {
+	return &LoadBalancer{nodes, opt, nil, handler}
 }
 
 func New(opt Options) *LoadBalancer {
-	return NewFrom([]*Node{}, opt)
+	return NewFrom([]*Node{}, opt, nil)
 }
 
 func (f *F) GetScore() float32 {
@@ -54,6 +55,13 @@ func (n *Node) IsAvailable() bool {
 
 func (n *Node) IsError() bool {
 	return !n.IsAvailable() || n.LastStatus >= 400
+}
+
+func (l *LoadBalancer) MakeUnavailableNode(n *Node, status uint16) {
+	n.LastStatus = status
+	if l.ErrorListener != nil {
+		l.ErrorListener(n)
+	}
 }
 
 func (n *Node) GetScore() (sum float32) {
@@ -83,7 +91,7 @@ func (lb *LoadBalancer) PingNode(n *Node) error {
 
 	resp, err := cl.Do(req)
 	if err != nil {
-		n.LastStatus = StatusUnavailable
+		lb.MakeUnavailableNode(n, StatusUnavailable)
 		return errors.New(NodeUnavailableError)
 	}
 	defer resp.Body.Close()
@@ -97,7 +105,7 @@ func (lb *LoadBalancer) PingNode(n *Node) error {
 	body := make(map[string]float32)
 	err = json.NewDecoder(resp.Body).Decode(&body)
 	if err != nil {
-		n.LastStatus = StatusUnavailable
+		lb.MakeUnavailableNode(n, StatusUnavailable)
 		return errors.New(NodeUnavailableError)
 	}
 
