@@ -17,12 +17,13 @@ type Options struct {
 	UserAgent        string `json:"userAgent"`
 	Authorization    string `json:"authorization"`
 	CacheOptimalNode bool   `json:"cacheOptimalNode"`
+	Route            string `json:"route"`
 }
 
 type LoadBalancer struct {
-	Nodes      []*Node `json:"nodes"`
-	opt        Options `json:"opt"`
-	CachedNode *Node   `json:"cachedNode"`
+	Nodes         []*Node `json:"nodes"`
+	opt           Options `json:"opt"`
+	CachedNode    *Node   `json:"cachedNode"`
 	ErrorListener func(*Node)
 }
 
@@ -80,7 +81,7 @@ func (lb *LoadBalancer) PingNode(n *Node) error {
 		Timeout: NodeTimeout,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, n.URI, nil)
+	req, err := http.NewRequest(http.MethodGet, n.URI+lb.opt.Route, nil)
 	if err != nil {
 		return err
 	}
