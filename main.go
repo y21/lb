@@ -11,6 +11,9 @@ const (
 	StatusUnavailable    = uint16(0)
 	NodeUnavailableError = "node not available"
 	NodeTimeout          = time.Second * 15
+
+	OpUnavailable = 0
+	OpAvailable   = 1
 )
 
 type Options struct {
@@ -20,11 +23,16 @@ type Options struct {
 	Route            string `json:"route"`
 }
 
+type UpdateData struct {
+	Node *Node
+	Op   uint8
+}
+
 type LoadBalancer struct {
-	Nodes         []*Node `json:"nodes"`
-	opt           Options `json:"opt"`
-	CachedNode    *Node   `json:"cachedNode"`
-	ErrorListener func(*Node)
+	Nodes        []*Node `json:"nodes"`
+	opt          Options `json:"opt"`
+	CachedNode   *Node   `json:"cachedNode"`
+	Subscription chan UpdateData
 }
 
 type F struct {
@@ -38,12 +46,12 @@ type Node struct {
 	LastStatus uint16        `json:"lastStatus"`
 }
 
-func NewFrom(nodes []*Node, opt Options, handler func(*Node)) *LoadBalancer {
-	return &LoadBalancer{nodes, opt, nil, handler}
+func NewFrom(nodes []*Node, opt Options) *LoadBalancer {
+	return &LoadBalancer{nodes, opt, nil, make(chan UpdateData)}
 }
 
 func New(opt Options) *LoadBalancer {
-	return NewFrom([]*Node{}, opt, nil)
+	return NewFrom([]*Node{}, opt)
 }
 
 func (f *F) GetScore() float32 {
@@ -60,8 +68,10 @@ func (n *Node) IsError() bool {
 
 func (l *LoadBalancer) MakeUnavailableNode(n *Node, status uint16) {
 	n.LastStatus = status
-	if l.ErrorListener != nil {
-		l.ErrorListener(n)
+
+	l.Subscription <- UpdateData{
+		Node: n,
+		Op:   OpUnavailable,
 	}
 }
 
